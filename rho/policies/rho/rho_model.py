@@ -1026,6 +1026,12 @@ class BaseVLMModel(nn.Module):
         else:
             self.state_projector = state_projector
 
+        if config.sh5_tactile:
+            from rho.policies.rho.tactile_encoders import SH5StateProjector
+            if self.max_state_dim != 144 or self.max_action_dim != 54:
+                raise ValueError("SH5 requires 54 joints + 90 tactile inputs and 54 actions")
+            self.state_projector = SH5StateProjector(self.embed_dim).to(device=self.device, dtype=self.dtype)
+
         # LoRA if configured (must be done BEFORE _set_requires_grad because
         # add_adapter/set_adapter can reset requires_grad on base model params)
         # If action_lora_init_from_scratch=True, defer attachment until after checkpoint loading

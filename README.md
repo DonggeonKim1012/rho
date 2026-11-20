@@ -1,3 +1,48 @@
+## SH5 tactile adaptation
+
+This branch contains the Microsoft **rhobotics VLA**, based on upstream commit
+`65f189ffb02c5f4faac189b86a5415124016c7f4`, with a trainable SH5 tactile encoder.
+It is separate from the Rho-1 math-language-model code on this repository's original main branch.
+
+- Task000905/right and Task000943/left; 54 ordered joint values and 90 pressure values.
+- Shared finger MLP encodes pressure to32 features, concatenated with54 joint features.
+- Output:50x54 absolute joint targets in radians,30Hz. Head RGB only; no Molmo overlay.
+- VLM backbone frozen; action expert, projections and tactile encoder trained.
+- Final checkpoint:25,477 updates, batch1024,48-hour run.
+- Exact input order, preprocessing and task prompts: [sh5/contract.json](sh5/contract.json).
+- Runtime: [sh5/runtime.py](sh5/runtime.py). Checkpoints include normalization and effective prompts.
+
+Recreate the measured Python3.12 environment (CUDA12.8 wheels):
+
+```bash
+uv venv .venv --python python3.12
+uv pip install --python .venv/bin/python --extra-index-url https://download.pytorch.org/whl/cu128 --index-strategy unsafe-best-match -r sh5/requirements-runtime.txt
+uv pip install --python .venv/bin/python --no-deps -e . -e rho_client
+```
+
+The validated runtime uses SDPA and does not require FlashAttention. First model construction
+may fetch public tokenizer/vision configuration assets from Hugging Face.
+
+Inference from a trusted downloaded checkpoint:
+
+```python
+import sys
+sys.path.insert(0, "sh5")
+from runtime import Runtime
+runtime = Runtime("/path/to/checkpoint.pt")
+# joints:(54,), tactile_left/right:(45,), RGB:uint8(720,1280,3)
+actions = runtime.predict(joints, tactile_left, tactile_right, head_rgb, task_id=0)
+# task_id0=905/right; task_id1=943/left. Returns(50,54) absolute radians.
+```
+
+Training scripts under `sh5/` use server workspace dataset paths. Data and weights are
+excluded from Git. Start with `bash sh5/launch.sh 1024`; resume with
+`bash sh5/launch.sh 1024 --resume --save-every 30000`.
+The original upstream installation and tutorials follow below. This package is an offline
+research checkpoint and has not been approved for powered robot execution.
+
+---
+
 [project-page]: https://microsoft.github.io/rhobotics/
 
 <h1 align="center">

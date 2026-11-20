@@ -386,6 +386,13 @@ class RhoPolicy(PreTrainedPolicy):
         losses = losses[:, :, : self.config.max_action_dim]
         loss = losses.mean()
         loss_dict = {"l2_loss": loss.item()}
+        if self.config.sh5_tactile and "task_index" in batch:
+            task_ids = batch["task_index"].to(losses.device)
+            for task_id, name in ((0, "task905"), (1, "task943")):
+                selected = task_ids == task_id
+                if selected.any():
+                    loss_dict[f"train/{name}_flow_mse"] = losses[selected].mean().item()
+
         loss_dict.update(self.model.flow_model._last_hidden_state_stats)
         return loss, loss_dict
 

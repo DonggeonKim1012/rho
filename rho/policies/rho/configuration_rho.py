@@ -19,6 +19,7 @@ class RhoConfig(PolicyConfig):
     noise_policy: str | None = None
     noise_policy_kwargs: dict = field(default_factory=dict)
 
+    sh5_tactile: bool = False
     name: str = "rho"
     pretrained_repo_id: str | None = "microsoft/rho-base"
 
